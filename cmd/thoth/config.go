@@ -21,6 +21,17 @@ type Config struct {
 	Templates []thoth.SelectorConfig `json:"templates" yaml:"templates"`
 }
 
+func readConfig(path string) (c Config, err error) {
+	f, err := os.Open(path)
+	if err == nil {
+		defer f.Close()
+		d := yaml.NewDecoder(f)
+		err = d.Decode(&c)
+	}
+
+	return
+}
+
 func findConfig(dir string) (c Config, err error) {
 	path, _, searchErr := thoth.UpSearchFile(dir)
 	if errors.Is(searchErr, thoth.ErrFileNotFound) {
@@ -30,12 +41,6 @@ func findConfig(dir string) (c Config, err error) {
 		return
 	}
 
-	f, err := os.Open(path)
-	if err == nil {
-		defer f.Close()
-		d := yaml.NewDecoder(f)
-		err = d.Decode(&c)
-	}
-
+	c, err = readConfig(path)
 	return
 }

@@ -10,7 +10,7 @@ import (
 type Scanner struct {
 	Root     fs.FS
 	Selector thoth.Selector
-	Reporter Reporter
+	Logger   Logger
 }
 
 func (s Scanner) Scan() ([]thoth.Template, Samples, error) {
@@ -36,7 +36,11 @@ func (s Scanner) Scan() ([]thoth.Template, Samples, error) {
 					t, err = p.Parse(path, buffer.String())
 				}
 
-				s.Reporter.ReportError(path, err)
+				s.Logger.Result(TemplateResult{
+					Name: path,
+					Err:  err,
+				})
+
 				if err == nil {
 					templates = append(templates, t)
 				}
