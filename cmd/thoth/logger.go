@@ -27,8 +27,8 @@ type TemplateResult struct {
 }
 
 type Logger interface {
-	Debug(message string) error
-	Error(message string) error
+	Debugf(message string, args ...interface{}) error
+	Errorf(message string, args ...interface{}) error
 	Result(TemplateResult) error
 }
 
@@ -56,16 +56,16 @@ func (cr *ConsoleLogger) err() io.Writer {
 	return os.Stderr
 }
 
-func (cr *ConsoleLogger) Debug(message string) (err error) {
+func (cr *ConsoleLogger) Debugf(format string, args ...interface{}) (err error) {
 	if !cr.Verbose {
-		_, err = fmt.Fprintln(cr.out(), message)
+		_, err = fmt.Fprintf(cr.out(), format+"\n", args...)
 	}
 
 	return
 }
 
-func (cr *ConsoleLogger) Error(message string) (err error) {
-	_, err = fmt.Fprintln(cr.err(), message)
+func (cr *ConsoleLogger) Errorf(format string, args ...interface{}) (err error) {
+	_, err = fmt.Fprintf(cr.err(), format+"\n", args...)
 	return
 }
 
@@ -90,7 +90,6 @@ func (cr *ConsoleLogger) Result(tr TemplateResult) (err error) {
 
 	if cr.Verbose {
 		// always write the header for verbose output,
-		// which is just the template's name (relative path)
 		headerOnce()
 	} else if tr.Err != nil {
 		headerOnce()

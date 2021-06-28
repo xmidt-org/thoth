@@ -8,41 +8,32 @@ import (
 )
 
 var (
-	// Returned by file search functions to indicate that no file was found
-	// matching the specified criteria.
-	ErrFileNotFound = errors.New("File not found")
+	// ErrStopSearch is a sentinel indicating that UpSearch should halt and return.
+	ErrStopSearch = errors.New("sentinel error indicating a search should end")
 )
 
-// UpSearchFile attempts to locate a single, non-directory file by starting
-// in a given directory and traversing up to the root.  The names indicate the
-// relative file names to search for, and are attempted in order at each level
-// of the directory tree.
-//
-// This function returns the absolute path of any file found, together with its associated
-// FileInfo from Stat.  If no file could be found, ErrFileNotFound is returned.
-func UpSearchFile(dir string, names ...string) (path string, fi fs.FileInfo, err error) {
-	if len(names) == 0 {
-		err = ErrFileNotFound
+// UpSearch walks up a directory applying predicates to each absolute path.
+// The given directory is walked up to the root.  If any of the predicates
+// return the special value ErrStopSearch, then UpSearch returns immediately
+// with a nil error.  Otherwise, any error halts the search and that error is returned.
+func UpSearch(dir string, fns ...func(string) error) (err error) {
+	if len(fns) == 0 {
 		return
 	}
 
-	if !filepath.IsAbs(dir) {
-		dir, err = filepath.Abs(dir)
-		if err != nil {
-			return
-		}
-	}
-
+	dir, err = filepath.Abs(dir)
 	for len(dir) > 0 {
-		for _, n := range names {
-			path = filepath.Join(dir, n)
-			fi, err = os.Stat(path)
-			if err == nil && !fi.IsDir() {
+		for _, fn := range fns {
+			err = fn(dir)
+			if errors.Is(err, ErrStopSearch) {
+				err = nil
+				return
+			} else if err != nil {
 				return
 			}
 		}
 
-		for dir[len(dir)-1] == os.PathSeparator {
+		for len(dir) > 0 && dir[len(dir)-1] == os.PathSeparator {
 			dir = dir[0 : len(dir)-1]
 		}
 
@@ -51,6 +42,29 @@ func UpSearchFile(dir string, names ...string) (path string, fi fs.FileInfo, err
 		dir, _ = filepath.Split(dir)
 	}
 
-	err = ErrFileNotFound
 	return
+}
+
+// FirstFile returns a predicate for UpSearch that matches the first file with
+// any of a set of names.  Upon any match, the returned predicate returns ErrStopSearch.
+//
+// The result pointer must be non-nil and receives the absolute path of the first
+// file matched.  Info is optional, and if non-nil it receives the fs.FileInfo associated
+// with the result path.
+func FirstFile(result *string, info *fs.FileInfo, names ...string) func(string) error {
+	return func(dir string) error {
+		for _, n := range names {
+			path := filepath.Join(dir, n)
+			if fi, err := os.Stat(path); err == nil && !fi.IsDir() {
+				*result = path
+				if info != nil {
+					*info = fi
+				}
+
+				return ErrStopSearch
+			}
+		}
+
+		return nil
+	}
 }

@@ -52,16 +52,42 @@ func parseCommandLine(args []string) (cli CLI, err error) {
 	return
 }
 
+func newLogger(cli CLI) Logger {
+	return &ConsoleLogger{
+		Out:     os.Stdout,
+		Err:     os.Stderr,
+		Verbose: cli.Verbose,
+	}
+}
+
 // loadConfig uses the command line to locate the optional thoth configuration file.
-func loadConfig(cli CLI) (c Config, err error) {
-	if cli.NoCfg {
+func loadConfig(cli CLI, l Logger) (c Config, err error) {
+	switch {
+	case cli.NoCfg:
 		if len(cli.Cfg) > 0 {
 			err = ErrCfgMismatch
 		}
-	} else if len(cli.Cfg) > 0 {
+
+	case len(cli.Cfg) > 0:
 		c, err = readConfig(cli.Cfg)
-	} else {
-		c, err = findConfig(cli.Root)
+		if err != nil {
+			err = fmt.Errorf("Unable to read configuration file [%s]: %s", cli.Cfg, err)
+		} else {
+			l.Debugf("using config file %s", cli.Cfg)
+		}
+
+	default:
+		var path string
+		path, c, err = findConfig(cli.Root)
+		if err != nil {
+			if len(path) > 0 {
+				err = fmt.Errorf("Unable to read configuration file [%s]: %s", path, err)
+			} else {
+				err = fmt.Errorf("Unable to search for configuration file: %s", err)
+			}
+		} else if len(path) > 0 {
+			l.Debugf("found config file %s", path)
+		}
 	}
 
 	return
@@ -83,14 +109,6 @@ func newSelector(cli CLI, cfg Config) (thoth.Selector, error) {
 	return thoth.NewSelector(scfgs...)
 }
 
-func newLogger(cli CLI) Logger {
-	return &ConsoleLogger{
-		Out:     os.Stdout,
-		Err:     os.Stderr,
-		Verbose: cli.Verbose,
-	}
-}
-
 func newScanner(cli CLI, r Logger, s thoth.Selector) Scanner {
 	return Scanner{
 		Root:     os.DirFS(cli.Root),
@@ -105,7 +123,8 @@ func run(args []string) (int, error) {
 		return ExitBadCommandLine, err
 	}
 
-	cfg, err := loadConfig(cli)
+	l := newLogger(cli)
+	cfg, err := loadConfig(cli, l)
 	if err != nil {
 		return ExitBadConfig, err
 	}
@@ -115,7 +134,7 @@ func run(args []string) (int, error) {
 		return ExitBadConfig, err
 	}
 
-	scanner := newScanner(cli, newLogger(cli), selector)
+	scanner := newScanner(cli, l, selector)
 	_, _, err = scanner.Scan()
 	if err != nil {
 		return ExitScanFailed, err

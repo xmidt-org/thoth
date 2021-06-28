@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"os"
 
 	"github.com/xmidt-org/thoth"
@@ -21,6 +20,7 @@ type Config struct {
 	Templates []thoth.SelectorConfig `json:"templates" yaml:"templates"`
 }
 
+// readConfig unmarshals a Config object from the given system file path.
 func readConfig(path string) (c Config, err error) {
 	f, err := os.Open(path)
 	if err == nil {
@@ -32,15 +32,17 @@ func readConfig(path string) (c Config, err error) {
 	return
 }
 
-func findConfig(dir string) (c Config, err error) {
-	path, _, searchErr := thoth.UpSearchFile(dir)
-	if errors.Is(searchErr, thoth.ErrFileNotFound) {
-		return
-	} else if searchErr != nil {
-		err = searchErr
-		return
+// findConfig searches for a configuration file beginning at the given
+// directory and traversing up the directory tree to the root.  If no
+// file is found, this function returns an empty path and a nil error.
+// Otherwise, the path to the configuration file is returned along with
+// the results of readConfig.
+func findConfig(dir string) (path string, c Config, err error) {
+	err = thoth.UpSearch(dir, thoth.FirstFile(&path, nil, ConfigFileName))
+
+	if err == nil && len(path) > 0 {
+		c, err = readConfig(path)
 	}
 
-	c, err = readConfig(path)
 	return
 }
