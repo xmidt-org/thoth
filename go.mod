@@ -1,6 +1,6 @@
 module github.com/xmidt-org/thoth
 
-go 1.16
+go 1.24
 
 require (
 	github.com/alecthomas/kong v1.12.0
