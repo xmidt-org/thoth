@@ -3,8 +3,6 @@
 
 package thoth
 
-const mediaTypeKey = "_mediaType"
-
 // Model is a template model.
 type Model map[string]interface{}
 
