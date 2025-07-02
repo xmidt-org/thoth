@@ -33,7 +33,7 @@ func (ms Matchers) Match(v string) bool {
 // Matcher will match values if at least one of the globs matched.  If patterns
 // is empty, then the returned Matcher won't match anything.
 func ParsePatterns(patterns ...string) (Matcher, error) {
-	var ms Matchers
+	ms := make(Matchers, len(patterns))
 	for _, p := range patterns {
 		g, err := glob.Compile(p, os.PathSeparator)
 		if err != nil {

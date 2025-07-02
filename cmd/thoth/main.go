@@ -27,17 +27,17 @@ const (
 
 var (
 	// ErrCfgMismatch indicates that the no-cfg and cfg options were both supplied.
-	ErrCfgMismatch = errors.New("Cannot specify a config file and the no-cfg option")
+	ErrCfgMismatch = errors.New("cannot specify a config file and the no-cfg option")
 )
 
 // CLI represents the thoth command line.
 type CLI struct {
-	Root      string   `optional default:"." name:"root" short:"R" help:"root directory for file traversal"`
-	Verbose   bool     `optional default:"false" name:"verbose" short:"v" help:"verbose output"`
-	NoCfg     bool     `optional default:"false" name:"no-cfg" help:"ignore any configuration files"`
-	Cfg       string   `optional name:"cfg" help:"explicit configuration file, instead of searching"`
-	Samples   []string `optional name:"samples" short:"s" help:"sample patterns"`
-	Templates []string `optional name:"templates" short:"t" help:"template patterns"`
+	Root      string   `optional:"true" default:"." name:"root" short:"R" help:"root directory for file traversal"`
+	Verbose   bool     `optional:"true" default:"false" name:"verbose" short:"v" help:"verbose output"`
+	NoCfg     bool     `optional:"true" default:"false" name:"no-cfg" help:"ignore any configuration files"`
+	Cfg       string   `optional:"true" name:"cfg" help:"explicit configuration file, instead of searching"`
+	Samples   []string `optional:"true" name:"samples" short:"s" help:"sample patterns"`
+	Templates []string `optional:"true" name:"templates" short:"t" help:"template patterns"`
 }
 
 // parseCommandLine uses kong to parse the given arguments and return the CLI instance.
@@ -74,7 +74,7 @@ func loadConfig(cli CLI, l Logger) (c Config, err error) {
 	case len(cli.Cfg) > 0:
 		c, err = readConfig(cli.Cfg)
 		if err != nil {
-			err = fmt.Errorf("Unable to read configuration file [%s]: %s", cli.Cfg, err)
+			err = fmt.Errorf("unable to read configuration file [%s]: %w", cli.Cfg, err)
 		} else {
 			l.Debugf("using config file %s", cli.Cfg)
 		}
@@ -84,9 +84,9 @@ func loadConfig(cli CLI, l Logger) (c Config, err error) {
 		path, c, err = findConfig(cli.Root)
 		if err != nil {
 			if len(path) > 0 {
-				err = fmt.Errorf("Unable to read configuration file [%s]: %s", path, err)
+				err = fmt.Errorf("unable to read configuration file [%s]: %w", path, err)
 			} else {
-				err = fmt.Errorf("Unable to search for configuration file: %s", err)
+				err = fmt.Errorf("unable to search for configuration file: %w", err)
 			}
 		} else if len(path) > 0 {
 			l.Debugf("found config file %s", path)

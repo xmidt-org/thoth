@@ -5,16 +5,7 @@ package main
 
 import (
 	"io/fs"
-
-	"github.com/xmidt-org/thoth"
 )
-
-type modelLoader struct {
-	name   string
-	loaded bool
-	err    error
-	model  thoth.Model
-}
 
 // Samples is both a loader and a cache for sample Model data.
 type Samples struct {
